@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 '''
 Find potential de novo variants in a given VCF.
 
@@ -186,15 +186,15 @@ def trimfamily(Fam, labels):
     Fam2 = {}
     for child, (dad, mom, gender, aff_status) in Fam.items():
         if child not in labels:
-            sys.stderr.write("Could not find child: {0}\n".format(child))
+            #sys.stderr.write("Could not find child: {0}\n".format(child))
             continue
 
         if dad not in labels:
-            sys.stderr.write("Could not find dad: {0}\n".format(dad))
+            #sys.stderr.write("Could not find dad: {0}\n".format(dad))
             continue
 
         if mom not in labels:
-            sys.stderr.write("Could not find mom: {0}\n".format(mom))
+            #sys.stderr.write("Could not find mom: {0}\n".format(mom))
             continue
 
         if gender in ('Male', 'male', 'M', 'm', '1'):
@@ -208,6 +208,7 @@ def trimfamily(Fam, labels):
         dad = labels.index(dad)
         mom = labels.index(mom)
         Fam2[child] = (dad, mom, gender, aff_status)
+        continue
 
     # Now to make the arrays for easier look up
     am_kid = ['N' for i in range(9, len(labels))]
@@ -258,7 +259,9 @@ def process_line(line, args):
     (ref_allele, alt_allele, qual, filter_pos) = range(3, 7)
     passedcheck = True
 
-    if line[filter_pos] != 'PASS':
+    if line[filter_pos] == 'PASS' or line[filter_pos] == '.':
+        passedcheck = True
+    else:
         passedcheck = False
 
     return passedcheck
@@ -457,22 +460,25 @@ def parent_AD_cuts(dad_AD_info, mom_AD_info, args):
 def load_esp_counts(esp_file, chrom):
     "Open the ESP counts file and save variants for a given chromosome"
     esp_counts = {}
-    (count_ea, numchr_ea, af_ea, count_aa, numchr_aa, af_aa) = range(9, 15)
+    # (count_ea, numchr_ea, af_ea, count_aa, numchr_aa, af_aa) = range(9, 15)
+    af = 19
+    
 
     with open(esp_file, 'r') as esp_data:
         for line in esp_data:
-            line = line.split()
+            line = line.split(sep = ",")
 
-            if line[0] != chrom:
+            if line[1] != chrom:
                 continue
 
             # key format -- chr:pos:ref:alt
-            chr_pos_change = '{0}:{1}:{2}:{3}'.format(line[0], line[1],
-                                                      line[2], line[3])
+            chr_pos_change = '{0}:{1}:{2}:{3}'.format(line[1], line[2],
+                                                      line[4], line[5])
             # value format -- frequency
-            allele_count = float(line[count_ea]) + float(line[count_aa])
-            chr_count = float(line[numchr_ea]) + float(line[numchr_aa])
-            allele_freq = allele_count / chr_count
+            #allele_count = float(line[count_ea]) + float(line[count_aa])
+            #chr_count = float(line[numchr_ea]) + float(line[numchr_aa])
+            #allele_freq = allele_count / chr_count
+            allele_freq = float(line[af])
 
             esp_counts[chr_pos_change] = allele_freq
 
@@ -600,17 +606,34 @@ def get_prob_true_dn(child_PL, dad_PL, mom_PL, variant_pop_freq):
 
     return metric
 
+def append_denovo_format_keys(format_str):
+    return(format_str + ":DNV:DNF:DNM")
+
+def append_denovo_format(format_str, prob_denovo, father, gt_father, mother, gt_mother):
+    # Add data (probability of denovo and father and mother info) to FORMAT 
+    # field. This is on a per-sample basis (as part of FORMAT field)
+    if isinstance(prob_denovo, float):
+        prob_denovo = round(prob_denovo, 3)
+    return (format_str + ":" + str(prob_denovo) + ":" + 
+            father + "," + gt_father + ":" + 
+            mother + "," + gt_mother)
 
 def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
                              esp_chr_counts, labels, chrom_under_study,
                              am_kid, who_dad, who_mom, vep_field_names):
     "Go through the VCF line by line to find de novo variants"
+    outfile.write("\t" + append_denovo_format_keys(line[8]))
     for column, entry in enumerate(line):
         if not entry.startswith(('0/1', '1/0')):
+            if column >= 9:
+                outfile.write("\t" + append_denovo_format(line[column], ".", ".", 
+                                                          ".", ".", "."))
             continue
 
         # If a het site has been found, check if the het is a child
         if am_kid[column - 9] == 'N':
+            outfile.write("\t" + append_denovo_format(line[column], ".", ".", 
+                                                      ".", ".", "."))
             continue
         else:
             dad_pos = who_dad[column - 9]
@@ -619,18 +642,28 @@ def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
         # Make sure the het variant passes the quality filters
         child_data = child_cuts(entry.split(':'), PL_pos, AD_pos, args)
         if child_data is None:
+            outfile.write("\t" + append_denovo_format(line[column], ".", ".", 
+                                                      ".", ".", "."))
             continue
         else:
             (child_PL, child_AD_ratio) = child_data
+            
+        dad_record = line[dad_pos].split(':')
+        mom_record = line[mom_pos].split(':')
 
         # Check that the parents are both homozygous reference
         if not line[dad_pos].startswith('0/0'):
+            outfile.write("\t" + append_denovo_format(line[column], ".",
+                                                      labels[dad_pos], dad_record[0], 
+                                                      labels[mom_pos], mom_record[0]))
             continue
         if not line[mom_pos].startswith('0/0'):
+            outfile.write("\t" + append_denovo_format(line[column], ".",
+                                                      labels[dad_pos], dad_record[0], 
+                                                      labels[mom_pos], mom_record[0]))
             continue
 
-        dad_record = line[dad_pos].split(':')
-        mom_record = line[mom_pos].split(':')
+
 
         dad_PL = dad_record[PL_pos].split(',')
         mom_PL = mom_record[PL_pos].split(',')
@@ -640,6 +673,9 @@ def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
         # Make sure that both parent genotypes pass AD and DP filters
         parent_AD_ratios = parent_AD_cuts(dad_AD_info, mom_AD_info, args)
         if parent_AD_ratios is None:
+            outfile.write("\t" + append_denovo_format(line[column], ".",
+                                                      labels[dad_pos], dad_record[0], 
+                                                      labels[mom_pos], mom_record[0]))
             continue
         else:
             (dad_AD_ratio, mom_AD_ratio) = parent_AD_ratios
@@ -653,6 +689,9 @@ def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
         dp_ratio = DPcheck(DP, args)
 
         if dp_ratio is None:
+            outfile.write("\t" + append_denovo_format(line[column], ".",
+                                                      labels[dad_pos], dad_record[0], 
+                                                      labels[mom_pos], mom_record[0]))
             continue
 
         # Start of the new block with allele frequencies
@@ -678,8 +717,8 @@ def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
         prob_true_dn = get_prob_true_dn(child_PL, dad_PL, mom_PL,
                                         variant_pop_freq)
 
-        if prob_true_dn < args.pdnmetric:
-            continue
+        #if prob_true_dn < args.pdnmetric:
+        #    continue
 
         # Extract child sex and affected status
         (dad_col, mom_col, child_sex, child_aff_status) = Fam[column]
@@ -722,6 +761,12 @@ def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
             ]
 
         print('\t'.join(map(str, res_indiv)))
+        outfile.write("\t" + 
+                      append_denovo_format(line[column], prob_true_dn,
+                                           labels[dad_pos], dad_record[0],
+                                           labels[mom_pos], mom_record[0]))
+    outfile.write("\n")
+
 
 
 def process_multi_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
@@ -729,6 +774,7 @@ def process_multi_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
                           am_kid, who_dad, who_mom, vep_field_names):
     '''Go through the VCF line by line to find de novo variants on lines with
     multiple alt alleles'''
+    sys.exit("Modifications made by Senanu don't yet accommodate multiple alleles per VCF line")
     for column, entry in enumerate(line):
         if not entry.startswith(('0/1', '0/2')):
             continue
@@ -924,6 +970,7 @@ def process_hemizygous_variants(line, Fam, PL_pos, AD_pos, DP_pos, args,
                                 esp_chr_counts, labels, chrom_under_study,
                                 parent, gender_kid, who_parent, vep_field_names):
     "Look for de novo variants when the chromosome is hemizygous"
+    sys.exit("Modifications made by Senanu don't yet accommodate hemizygous variants")
     for column, entry in enumerate(line):
         if not entry.startswith('1/1'):
             continue
@@ -1080,6 +1127,7 @@ def process_multi_hemi_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
                                parent, gender_kid, who_parent, vep_field_names):
     '''Go through the VCF line by line to find de novo variants on lines with
     multiple alt alleles for hemizygous chromosomes'''
+    sys.exit("Modifications made by Senanu don't yet accommodate hemizygous or multiple alleles per VCF line")
     for column, entry in enumerate(line):
         if not entry.startswith(('1/1', '2/2')):
             continue
@@ -1287,7 +1335,7 @@ def process_multi_hemi_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
         print('\t'.join(map(str, res_indiv)))
 
 
-def main(vcffile, Fam, args):
+def main(vcffile, outfile, Fam, args):
     "Run the checks on each line in the VCF"
 
     # Printing a warning about tri-allelic sites
@@ -1320,17 +1368,25 @@ def main(vcffile, Fam, args):
     # Reading header lines to get VEP and individual arrays
     vep_field_names = '.'  # holder, should be replaced if VEP annotation is present
 
-    header_line = vcffile.next()
+    #header_line = vcffile.next()
+    header_line = vcffile.readline()
+    last_header_line = header_line
     while header_line.startswith('##'):
+        outfile.write(header_line)
         if header_line.find('ID=CSQ') > -1:
             vep_field_names = header_line.split('Format: ')[-1].strip('">').split('|')
-        header_line = vcffile.next()
-
+         # header_line = vcffile.next()
+        header_line = vcffile.readline()
     if not header_line.startswith('#CHROM'):  # should be the #CHROM line
         sys.stderr.write('ERROR: Unexpected header line: Expected line starting with "#CHROM"'
                          '\n  Found: {0}...'.format(header_line[:30]))
         sys.exit(1)
+        ###INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency estimate for each alternate allele">
+    outfile.write("##INFO=<ID=DNV,Number=A,Type=Integer,Description=\"Probability that variant is DeNovo, based on de_novo_finder_3.py (https://github.com/ksamocha/de_novo_scripts)\">\n")
+    outfile.write("##INFO=<ID=DNF,Number=A,Type=Float,Description=\"Fathers genotype\">\n")
+    outfile.write("##INFO=<ID=DNM,Number=A,Type=Float,Description=\"Mothers genotype\">\n")
 
+    outfile.write(header_line) # the #CHROM header line
     labels = header_line.strip().split('\t')
 
     (Fam, am_kid, who_dad, who_mom) = trimfamily(Fam, labels)
@@ -1510,6 +1566,8 @@ if __name__ == "__main__":
     # Note: VEP annotation code is hacked from Konrad Karczewski
 
     args = parser.parse_args()
+    #args = parser.parse_args(["tiny.vcf", "tiny.ped", "gnomAD.csv"])
+    #args.annotatevar_VEP = True
 
     if not os.path.exists(args.vcf):
         sys.exit("{0}: No such file or directory".format(args.vcf))
@@ -1534,5 +1592,10 @@ if __name__ == "__main__":
         vcffile = gzip.open(args.vcf, 'r')
     else:
         vcffile = open(args.vcf, 'r')
+    
+    # Open an outfile VCF file
+    outfile = open("z.vcf", 'w')
 
-    main(vcffile, Fam, args)
+    main(vcffile, outfile, Fam, args)
+
+    outfile.close()
