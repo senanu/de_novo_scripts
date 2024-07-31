@@ -1,3 +1,10 @@
+# Fork of ksamocha's de_novo_scripts repo
+This repo uses the same methodology to identify De novo mutations as the original, but changes the output to be a VCF file with additional FORMAT fields (DNV, DNM, and DNF) which describe the probability of the variant being denovo, the mother's identity and genotype, and the father's identity and genotype. 
+
+This repo currently does not deal with Sex-linked or multi-allelic variants. It will exit if you try to use that functionality that is present in the original.
+
+The following is from the original repo:
+
 ## Find potential de novo variants in a given VCF.
 
 de_novo_finder_3.py is a major update to the original caller. The main purpose is to
