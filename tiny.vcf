@@ -1,0 +1,61 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##GLnexusVersion=v1.4.1-0-g68e25e5
+##GLnexusConfigName=DeepVariantWES
+##GLnexusConfigCRC32C=1063427682
+##GLnexusConfig={unifier_config: {drop_filtered: false, min_allele_copy_number: 1, min_AQ1: 35, min_AQ2: 20, min_GQ: 20, max_alleles_per_site: 32, monoallelic_sites_for_lost_alleles: true, preference: common}, genotyper_config: {revise_genotypes: true, min_assumed_allele_frequency: 9.99999975e-05, snv_prior_calibration: 0.375, indel_prior_calibration: 0.375, required_dp: 0, allow_partial_data: true, allele_dp_format: AD, ref_dp_format: MIN_DP, output_residuals: false, more_PL: true, squeeze: false, trim_uncalled_alleles: true, top_two_half_calls: false, output_format: BCF, liftover_fields: [{orig_names: [MIN_DP, DP], name: DP, description: "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth (reads with MQ=255 or with bad mates are filtered)\">", type: int, number: basic, default_type: missing, count: 1, combi_method: min, ignore_non_variants: true}, {orig_names: [AD], name: AD, description: "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">", type: int, number: alleles, default_type: zero, count: 0, combi_method: min, ignore_non_variants: false}, {orig_names: [GQ], name: GQ, description: "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">", type: int, number: basic, default_type: missing, count: 1, combi_method: min, ignore_non_variants: true}, {orig_names: [PL], name: PL, description: "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled genotype Likelihoods\">", type: int, number: genotype, default_type: missing, count: 0, combi_method: missing, ignore_non_variants: true}]}}
+##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency estimate for each alternate allele">
+##INFO=<ID=AQ,Number=A,Type=Integer,Description="Allele Quality score reflecting evidence for each alternate allele (Phred scale)">
+##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes">
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+##FILTER=<ID=MONOALLELIC,Description="Site represents one ALT allele in a region with multiple variants that could not be unified into non-overlapping multi-allelic sites">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=RNC,Number=2,Type=Character,Description="Reason for No Call in GT: . = n/a, M = Missing data, P = Partial data, I = gVCF input site is non-called, D = insufficient Depth of coverage, - = unrepresentable overlapping deletion, L = Lost/unrepresentable allele (other than deletion), U = multiple Unphased variants present, O = multiple Overlapping variants present, 1 = site is Monoallelic, no assertion about presence of REF or ALT allele">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth (reads with MQ=255 or with bad mates are filtered)">
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=PL,Number=G,Type=Integer,Description="Phred-scaled genotype Likelihoods">
+##contig=<ID=chr1,length=248956422>
+##contig=<ID=chr2,length=242193529>
+##contig=<ID=chr3,length=198295559>
+##contig=<ID=chr4,length=190214555>
+##contig=<ID=chr5,length=181538259>
+##contig=<ID=chr6,length=170805979>
+##contig=<ID=chr7,length=159345973>
+##contig=<ID=chr8,length=145138636>
+##contig=<ID=chr9,length=138394717>
+##contig=<ID=chr10,length=133797422>
+##contig=<ID=chr11,length=135086622>
+##contig=<ID=chr12,length=133275309>
+##contig=<ID=chr13,length=114364328>
+##contig=<ID=chr14,length=107043718>
+##contig=<ID=chr15,length=101991189>
+##contig=<ID=chr16,length=90338345>
+##contig=<ID=chr17,length=83257441>
+##contig=<ID=chr18,length=80373285>
+##contig=<ID=chr19,length=58617616>
+##contig=<ID=chr20,length=64444167>
+##contig=<ID=chr21,length=46709983>
+##contig=<ID=chr22,length=50818468>
+##contig=<ID=chrX,length=156040895>
+##contig=<ID=chrY,length=57227415>
+##contig=<ID=chrM,length=16569>
+##contig=<ID=chrEBV,length=171823>
+##bcftools_viewVersion=1.15.1+htslib-1.15.1
+##bcftools_viewCommand=view -r chr14:21385099-21456223 -o CHD8_bcftools.vcf -O v iwes_v2.2023_01.deepvariant.chr14.vcf.gz; Date=Wed Jul 24 10:45:33 2024
+##bcftools_normVersion=1.15.1+htslib-1.15.1
+##bcftools_normCommand=norm -m-both -o 01_single_alleles.vcf.gz -O z CHD8_deepvar.vcf.gz; Date=Wed Jul 24 11:22:51 2024
+##bcftools_normCommand=norm -f ../sequence_files/hg38.fa -o 02_leftnormalized.vcf.gz -O z 01_single_alleles.vcf.gz; Date=Wed Jul 24 11:26:19 2024
+##VEP="v111" time="2024-07-26 15:16:46" cache="/opt/vep/.vep/homo_sapiens_refseq/111_GRCh38" db="homo_sapiens_core_111_38@ensembldb.ensembl.org" ensembl=111.a6cc543 ensembl-funcgen=111.5327cdd ensembl-io=111.dbba8d6 ensembl-variation=111.d616b1e 1000genomes="phase3" COSMIC="98" ClinVar="202306" HGMD-PUBLIC="20204" assembly="GRCh38.p14" dbSNP="156" gencode="GENCODE 45" genebuild="2014-07" gnomADe="r2.1.1" gnomADg="v3.1.2" polyphen="2.2.3" refseq="GCF_000001405.40-RS_2023_03 - GCF_000001405.40_GRCh38.p14_genomic.gff" regbuild="1.0" sift="6.2.1"
+##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|Feature|BIOTYPE|EXON|INTRON|HGVSc|HGVSp|cDNA_position|CDS_position|Protein_position|Amino_acids|Codons|Existing_variation|DISTANCE|STRAND|FLAGS|VARIANT_CLASS|SPDI|SYMBOL_SOURCE|HGNC_ID|CANONICAL|MANE_SELECT|MANE_PLUS_CLINICAL|TSL|APPRIS|CCDS|ENSP|SWISSPROT|TREMBL|UNIPARC|UNIPROT_ISOFORM|REFSEQ_MATCH|REFSEQ_OFFSET|GIVEN_REF|USED_REF|BAM_EDIT|GENE_PHENO|SIFT|PolyPhen|DOMAINS|miRNA|HGVS_OFFSET|HGVSg|AF|AFR_AF|AMR_AF|EAS_AF|EUR_AF|SAS_AF|gnomADe_AF|gnomADe_AFR_AF|gnomADe_AMR_AF|gnomADe_ASJ_AF|gnomADe_EAS_AF|gnomADe_FIN_AF|gnomADe_NFE_AF|gnomADe_OTH_AF|gnomADe_SAS_AF|gnomADg_AF|gnomADg_AFR_AF|gnomADg_AMI_AF|gnomADg_AMR_AF|gnomADg_ASJ_AF|gnomADg_EAS_AF|gnomADg_FIN_AF|gnomADg_MID_AF|gnomADg_NFE_AF|gnomADg_OTH_AF|gnomADg_SAS_AF|MAX_AF|MAX_AF_POPS|CLIN_SIG|SOMATIC|PHENO|PUBMED|MOTIF_NAME|MOTIF_POS|HIGH_INF_POS|MOTIF_SCORE_CHANGE|TRANSCRIPTION_FACTORS|am_class|am_pathogenicity|CADD_PHRED|CADD_RAW">
+##am_class=AlphaMissense pathogenicity prediction; column from AlphaMissense_hg38.tsv.gz
+##am_pathogenicity=AlphaMissense pathogenicity score; column from AlphaMissense_hg38.tsv.gz
+##CADD_PHRED=PHRED-like scaled CADD score. CADD is only available here for non-commercial use. See CADD website for more information.
+##CADD_RAW=Raw CADD score. CADD is only available here for non-commercial use. See CADD website for more information.
+##VEP-command-line='vep --assembly GRCh38 --cache --check_ref --database 0 --dir_plugins /plugins --domains --everything --force_overwrite --format vcf --hgvsg --input_file 02_leftnormalized.vcf --output_file 03_annotated_vep.vcf --pick --plugin AlphaMissense,file=AlphaMissense_hg38.tsv.gz --plugin CADD,snv=whole_genome_SNVs.tsv.gz --refseq --spdi --use_transcript_ref --vcf'
+##bcftools_viewCommand=view -h 03_annotated_vep.vcf.gz; Date=Fri Jul 26 13:57:29 2024
+##bcftools_viewVersion=1.20+htslib-1.20
+##bcftools_viewCommand=view -r chr14:21385569,chr14:21385573 -s SP0000002,SP0000003,SP0000007,SP0000009,SP0000014,SP0000015 -o tiny.vcf 03_head.vcf.gz; Date=Tue Jul 30 10:49:36 2024
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SP0000002	SP0000003	SP0000007	SP0000009	SP0000014	SP0000015
+chr14	21385569	chr14_21385569_GA_G	GA	G	26	.	AF=9e-06;AQ=26;CSQ=-|3_prime_UTR_variant|MODIFIER|CHD8|57680|Transcript|NM_001170629.2|protein_coding|38/38||NM_001170629.2:c.*43del||8096|||||||-1||deletion|NC_000014.9:21385569:A:|EntrezGene||YES|ENST00000646647.2|||||NP_001164100.1|||||||A|A||||||||chr14:g.21385573del|||||||||||||||||||||||||||||||||||||||||;AC=0;AN=12	GT:DP:AD:GQ:PL:RNC	1/0:35:21,14:50:1829,0,183:..	0/0:40:40,0:50:0,156,1559:..	0/0:27:27,0:50:0,141,1409:..	0/0:27:27,0:50:0,171,1709:..	0/0:41:41,0:50:0,186,1859:..	0/0:26:26,0:50:0,189,1889:..
+chr14	21385573	chr14_21385573_A_G	A	G	40	.	AF=1.9e-05;AQ=40;CSQ=G|3_prime_UTR_variant|MODIFIER|CHD8|57680|Transcript|NM_001170629.2|protein_coding|38/38||NM_001170629.2:c.*40T>C||8093|||||||-1||SNV|NC_000014.9:21385572:A:G|EntrezGene||YES|ENST00000646647.2|||||NP_001164100.1|||||||A|A||||||||chr14:g.21385573A>G||||||||||||||||||||||||||||||||||||||||15.04|1.652407;AC=0;AN=12	GT:DP:AD:GQ:PL:RNC	0/0:35:35,0:50:0,183,1829:..	0/0:40:40,0:50:0,156,1559:..	0/0:27:27,0:50:0,141,1409:..	0/0:27:27,0:50:0,171,1709:..	0/0:41:41,0:50:0,186,1859:..	0/0:26:26,0:50:0,189,1889:..

@@ -1452,6 +1452,12 @@ def main(vcffile, outfile, Fam, args):
             if len(alt_alleles) > 2:
                 continue
 
+        #outfile.write( str(["\t".join(line[0:8])]))
+        outfile.write(line[0] + "\t" + line[1] + "\t" + line[2] + "\t" +
+                      line[3] + "\t" + line[4] + "\t" + line[5] + "\t" +
+                      line[6] + "\t" + line[7] + "\t")
+
+
         # Treating sex chromosomes differently
         if chrom_under_study in ('x', 'X', '23'):
             chrom_under_study = 'X'
