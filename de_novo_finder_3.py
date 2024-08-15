@@ -1557,6 +1557,10 @@ if __name__ == "__main__":
     parser.add_argument('esp', action='store', type=str,
                         help='ESP counts file')
 
+    parser.add_argument('-o', '--outfile', action='store', type = str,
+                        dest='outfile',
+                        help='''VCF oufile''',
+                        default="outfile.vcf")
     parser.add_argument('-t', '--thresh', action='store', type=int,
                         dest='thresh', help='PL threshold (default=20)',
                         default=20)
