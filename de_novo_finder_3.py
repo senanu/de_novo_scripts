@@ -122,11 +122,17 @@ Tranche variants
 becomes 100/30Mbp
 3.95: Fixed a bug that led to the first variant being dropped from the VCF
 
+4.00: Repo forked and changed by Senanu. Now produces VCF output but only
+currently works for 2-allele cases of autosomes. Added simple error-checking
+to deal with cases where AD, DP etc may be given as eg. ".,5". Added program 
+argument for specifying outfile.
+
 '''
 
-__version__ = 3.95
-__author__ = 'Kaitlin E. Samocha <ksamocha@fas.harvard.edu>'
-__date__ = 'March 10th, 2016'
+__version__ = 4.00
+__original_author__ = 'Kaitlin E. Samocha <ksamocha@fas.harvard.edu>'
+__author__ = 'Senanu Spring-Pearson <senanu.pearson@gmail.com'
+__date__ = 'Aug 15, 2024'
 
 import argparse
 import os.path
