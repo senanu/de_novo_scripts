@@ -306,6 +306,9 @@ def child_cuts(record, PL_pos, AD_pos, args):
 def DPcheck(DPlist, args):  # revamped
     "Check that the child's depth is appropriate given the parents' depths"
     percent_depthratio = args.depthratio / 100.0
+    if DPlist[0] == "." or DPlist[1] == "." or DPlist[2] == ".":
+        return None
+    
     dp_ratio = float(DPlist[0]) / (float(DPlist[1]) + float(DPlist[2]))
     if dp_ratio >= percent_depthratio:
         return dp_ratio
@@ -434,21 +437,31 @@ def worst_csq_index(csq_list):
 
 def parent_AD_cuts(dad_AD_info, mom_AD_info, args):
     "Apply the AD filter to the parental data"
-    if dad_AD_info == '.':
+    if dad_AD_info == '.' or dad_AD_info == ".,.":
         dad_AD_ratio = 0.0
     else:
         dad_AD = dad_AD_info.split(',')
         if ((dad_AD[0] == '0') and (dad_AD[1] == '0')):
             return None
-        dad_AD_ratio = float(dad_AD[1]) / (float(dad_AD[0]) + float(dad_AD[1]))
+        if((dad_AD[0] == ".") or (dad_AD[1] == ".")):
+            return None
+        try:
+            dad_AD_ratio = float(dad_AD[1]) / (float(dad_AD[0]) + float(dad_AD[1]))
+        except ValueError:
+            dad_AD_ratio = 0.0
 
-    if mom_AD_info == '.':
+    if mom_AD_info == '.' or mom_AD_info == ".,.":
         mom_AD_ratio = 0.0
     else:
         mom_AD = mom_AD_info.split(',')
         if ((mom_AD[0] == '0') and (mom_AD[1] == '0')):
             return None
-        mom_AD_ratio = float(mom_AD[1]) / (float(mom_AD[0]) + float(mom_AD[1]))
+        if ((mom_AD[0] == '.') or (mom_AD[1] == '.')):
+            return None
+        try:
+            mom_AD_ratio = float(mom_AD[1]) / (float(mom_AD[0]) + float(mom_AD[1]))
+        except ValueError:
+            mom_AD_ratio = 0.0
 
     if ((args.maxparentAB <= dad_AD_ratio) or
             (args.maxparentAB <= mom_AD_ratio)):
@@ -531,12 +544,21 @@ def get_variant_freq(esp_chr_counts, chr_pos_change, variant_annotation):
         # sys.stderr.write('Found in ESP: {0}\n'.format(chr_pos_change))
         esp_freq = esp_chr_counts[chr_pos_change]
 
-    # Determine VCF allele frequency (divide AC-1 by AN)
+    # Determine VCF allele frequency (divide AC-1 by AN) (original method)
+    # Alternatively, take allele frequency directly from VCF, if available
     found_counter = 0
+    allele_freq = 0.0
+    allele_count = 0
+    allele_num =  0
     all_annotation = variant_annotation.split(';')
     for entry in all_annotation:
         entry = entry.split('=')
-        if entry[0] == 'AC':
+        # Read allele frequency directly, if available ...
+        if entry[0] == 'AF':
+            allele_freq = float(entry[1])
+            found_counter += 2
+        # ... or calculate it
+        elif entry[0] == 'AC':
             allele_count = float(entry[1])
             found_counter += 1
         elif entry[0] == 'AN':
@@ -546,10 +568,16 @@ def get_variant_freq(esp_chr_counts, chr_pos_change, variant_annotation):
         if found_counter >= 2:
             break
 
-    try:
-        vcf_freq = (allele_count - 1) / allele_num
-    except UnboundLocalError:
-        sys.exit('What is wrong: {0}\n'.format(variant_annotation))
+    # Use the original method of calculating frequency, if available
+    if (allele_count > 0) and (allele_num > 0):
+        try:
+            vcf_freq = (allele_count - 1) / allele_num
+        except UnboundLocalError:
+            print("allele_count = " + allele_count + "\tallele_num = " + allele_num + "\n")
+            sys.exit('What is wrong: {0}\n'.format(variant_annotation))
+    # alternatively, use just the allele frequency AF from VCF file
+    elif allele_freq > 0.0:
+        vcf_freq = allele_freq
 
     # If both esp_freq and vcf_freq are 0, f = 100/30Mbp
     if (esp_freq == 0.0) and (vcf_freq == 0.0):
@@ -609,14 +637,13 @@ def get_prob_true_dn(child_PL, dad_PL, mom_PL, variant_pop_freq):
 def append_denovo_format_keys(format_str):
     return(format_str + ":DNV:DNF:DNM")
 
-def append_denovo_format(format_str, prob_denovo, father, gt_father, mother, gt_mother):
+def append_denovo_format(format_str, prob_denovo, father, mother):
     # Add data (probability of denovo and father and mother info) to FORMAT 
     # field. This is on a per-sample basis (as part of FORMAT field)
     if isinstance(prob_denovo, float):
         prob_denovo = round(prob_denovo, 3)
     return (format_str + ":" + str(prob_denovo) + ":" + 
-            father + "," + gt_father + ":" + 
-            mother + "," + gt_mother)
+            father + ":" + mother)
 
 def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
                              esp_chr_counts, labels, chrom_under_study,
@@ -626,14 +653,13 @@ def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
     for column, entry in enumerate(line):
         if not entry.startswith(('0/1', '1/0')):
             if column >= 9:
-                outfile.write("\t" + append_denovo_format(line[column], ".", ".", 
+                outfile.write("\t" + append_denovo_format(line[column], 
                                                           ".", ".", "."))
             continue
 
         # If a het site has been found, check if the het is a child
         if am_kid[column - 9] == 'N':
-            outfile.write("\t" + append_denovo_format(line[column], ".", ".", 
-                                                      ".", ".", "."))
+            outfile.write("\t" + append_denovo_format(line[column], ".", ".", "."))
             continue
         else:
             dad_pos = who_dad[column - 9]
@@ -642,8 +668,7 @@ def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
         # Make sure the het variant passes the quality filters
         child_data = child_cuts(entry.split(':'), PL_pos, AD_pos, args)
         if child_data is None:
-            outfile.write("\t" + append_denovo_format(line[column], ".", ".", 
-                                                      ".", ".", "."))
+            outfile.write("\t" + append_denovo_format(line[column], ".", ".", "."))
             continue
         else:
             (child_PL, child_AD_ratio) = child_data
@@ -652,18 +677,12 @@ def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
         mom_record = line[mom_pos].split(':')
 
         # Check that the parents are both homozygous reference
-        if not line[dad_pos].startswith('0/0'):
+        if not (line[dad_pos].startswith('0/0') or
+                line[mom_pos].startswith('0/0')):
             outfile.write("\t" + append_denovo_format(line[column], ".",
-                                                      labels[dad_pos], dad_record[0], 
-                                                      labels[mom_pos], mom_record[0]))
+                                                      labels[dad_pos], 
+                                                      labels[mom_pos]))
             continue
-        if not line[mom_pos].startswith('0/0'):
-            outfile.write("\t" + append_denovo_format(line[column], ".",
-                                                      labels[dad_pos], dad_record[0], 
-                                                      labels[mom_pos], mom_record[0]))
-            continue
-
-
 
         dad_PL = dad_record[PL_pos].split(',')
         mom_PL = mom_record[PL_pos].split(',')
@@ -674,8 +693,8 @@ def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
         parent_AD_ratios = parent_AD_cuts(dad_AD_info, mom_AD_info, args)
         if parent_AD_ratios is None:
             outfile.write("\t" + append_denovo_format(line[column], ".",
-                                                      labels[dad_pos], dad_record[0], 
-                                                      labels[mom_pos], mom_record[0]))
+                                                      labels[dad_pos], 
+                                                      labels[mom_pos]))
             continue
         else:
             (dad_AD_ratio, mom_AD_ratio) = parent_AD_ratios
@@ -690,8 +709,8 @@ def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
 
         if dp_ratio is None:
             outfile.write("\t" + append_denovo_format(line[column], ".",
-                                                      labels[dad_pos], dad_record[0], 
-                                                      labels[mom_pos], mom_record[0]))
+                                                      labels[dad_pos], 
+                                                      labels[mom_pos]))
             continue
 
         # Start of the new block with allele frequencies
@@ -760,11 +779,11 @@ def process_autosome_variant(line, Fam, PL_pos, AD_pos, DP_pos, args,
                 line[7]
             ]
 
-        print('\t'.join(map(str, res_indiv)))
+        #print('\t'.join(map(str, res_indiv)))
         outfile.write("\t" + 
                       append_denovo_format(line[column], prob_true_dn,
-                                           labels[dad_pos], dad_record[0],
-                                           labels[mom_pos], mom_record[0]))
+                                           labels[dad_pos],
+                                           labels[mom_pos]))
     outfile.write("\n")
 
 
@@ -1370,7 +1389,6 @@ def main(vcffile, outfile, Fam, args):
 
     #header_line = vcffile.next()
     header_line = vcffile.readline()
-    last_header_line = header_line
     while header_line.startswith('##'):
         outfile.write(header_line)
         if header_line.find('ID=CSQ') > -1:
@@ -1381,10 +1399,9 @@ def main(vcffile, outfile, Fam, args):
         sys.stderr.write('ERROR: Unexpected header line: Expected line starting with "#CHROM"'
                          '\n  Found: {0}...'.format(header_line[:30]))
         sys.exit(1)
-        ###INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency estimate for each alternate allele">
-    outfile.write("##INFO=<ID=DNV,Number=A,Type=Integer,Description=\"Probability that variant is DeNovo, based on de_novo_finder_3.py (https://github.com/ksamocha/de_novo_scripts)\">\n")
-    outfile.write("##INFO=<ID=DNF,Number=A,Type=Float,Description=\"Fathers genotype\">\n")
-    outfile.write("##INFO=<ID=DNM,Number=A,Type=Float,Description=\"Mothers genotype\">\n")
+    outfile.write("##FORMAT=<ID=DNV,Number=1,Type=Float,Description=\"Probability that variant is DeNovo, based on de_novo_finder_3.py (https://github.com/ksamocha/de_novo_scripts)\">\n")
+    outfile.write("##FORMAT=<ID=DNF,Number=2,Type=String,Description=\"Father ID and genotype\">\n")
+    outfile.write("##FORMAT=<ID=DNM,Number=2,Type=String,Description=\"Mother ID and genotype\">\n")
 
     outfile.write(header_line) # the #CHROM header line
     labels = header_line.strip().split('\t')
@@ -1405,6 +1422,8 @@ def main(vcffile, outfile, Fam, args):
     # Move line by line through the VCF
     for line in vcffile:
         line = line.strip('\n').split('\t')
+        
+        sys.stderr.write(line[0] + "\t" + line[1] + "\n")
 
         chrom_under_study = line[0]
         if chrom_under_study.startswith('chr'):
@@ -1455,7 +1474,7 @@ def main(vcffile, outfile, Fam, args):
         #outfile.write( str(["\t".join(line[0:8])]))
         outfile.write(line[0] + "\t" + line[1] + "\t" + line[2] + "\t" +
                       line[3] + "\t" + line[4] + "\t" + line[5] + "\t" +
-                      line[6] + "\t" + line[7] + "\t")
+                      line[6] + "\t" + line[7])
 
 
         # Treating sex chromosomes differently
@@ -1573,6 +1592,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     #args = parser.parse_args(["tiny.vcf", "tiny.ped", "gnomAD.csv"])
+   # args = parser.parse_args(["03_annotated_vep.vcf", "SPARK.ped", "gnomAD.csv"])
+   # args = parser.parse_args(["denovo.vcf", "SPARK.ped", "gnomAD.csv"])
+
+
     #args.annotatevar_VEP = True
 
     if not os.path.exists(args.vcf):
@@ -1600,7 +1623,7 @@ if __name__ == "__main__":
         vcffile = open(args.vcf, 'r')
     
     # Open an outfile VCF file
-    outfile = open("z.vcf", 'w')
+    outfile = open("outfile.vcf", 'w')
 
     main(vcffile, outfile, Fam, args)
 
